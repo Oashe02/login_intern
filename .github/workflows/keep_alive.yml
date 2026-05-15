@@ -11,5 +11,5 @@ jobs:
     steps:
       - name: Ping Render Backend
         run: |
-          # Replace the URL below with your actual Render backend URL once it's deployed
-          curl -s https://login-intern-backend.onrender.com/ > /dev/null
+          # Ping the actual Render backend URL
+          curl -s https://login-intern-582r.onrender.com/ > /dev/null
