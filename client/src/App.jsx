@@ -7,6 +7,8 @@ function App() {
   const [isLogin, setIsLogin] = useState(true)
   const [formData, setFormData] = useState({ name: '', email: '', password: '' })
   const [user, setUser] = useState(null)
+  const [tasks, setTasks] = useState([])
+  const [newTask, setNewTask] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -18,10 +20,14 @@ function App() {
     }
   }, [])
 
+  useEffect(() => {
+    if (user) fetchTasks()
+  }, [user])
+
   const fetchUser = async (token) => {
     try {
       setLoading(true)
-      const res = await fetch(`${API_URL}/me`, {
+      const res = await fetch(`${API_URL.replace('/api/auth', '/api/auth')}/me`, {
         headers: { Authorization: `Bearer ${token}` }
       })
       const data = await res.json()
@@ -35,6 +41,48 @@ function App() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const fetchTasks = async () => {
+    const token = localStorage.getItem('token')
+    const res = await fetch(`${API_URL.replace('/api/auth', '/api/tasks')}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    const data = await res.json()
+    if (res.ok) setTasks(data)
+  }
+
+  const addTask = async (e) => {
+    e.preventDefault()
+    if (!newTask.trim()) return
+    const token = localStorage.getItem('token')
+    const res = await fetch(`${API_URL.replace('/api/auth', '/api/tasks')}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ text: newTask })
+    })
+    if (res.ok) {
+      setNewTask('')
+      fetchTasks()
+    }
+  }
+
+  const toggleTask = async (id) => {
+    const token = localStorage.getItem('token')
+    await fetch(`${API_URL.replace('/api/auth', '/api/tasks')}/${id}`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    fetchTasks()
+  }
+
+  const deleteTask = async (id) => {
+    const token = localStorage.getItem('token')
+    await fetch(`${API_URL.replace('/api/auth', '/api/tasks')}/${id}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    fetchTasks()
   }
 
   const handleChange = (e) => {
@@ -78,6 +126,7 @@ function App() {
   const handleLogout = () => {
     localStorage.removeItem('token')
     setUser(null)
+    setTasks([])
     setFormData({ name: '', email: '', password: '' })
   }
 
@@ -91,10 +140,31 @@ function App() {
                 {user.name.charAt(0).toUpperCase()}
               </div>
               <div className="header">
-                <h1>Welcome, {user.name}!</h1>
-                <p>{user.email}</p>
+                <h1>Hi, {user.name.split(' ')[0]}</h1>
+                <p>Manage your tasks below</p>
               </div>
-              <button className="btn" onClick={handleLogout}>
+
+              <form onSubmit={addTask} className="task-form">
+                <input 
+                  type="text" 
+                  className="form-control" 
+                  placeholder="New task..."
+                  value={newTask}
+                  onChange={(e) => setNewTask(e.target.value)}
+                />
+                <button type="submit" className="btn small-btn">Add</button>
+              </form>
+
+              <div className="task-list">
+                {tasks.map(task => (
+                  <div key={task.id} className={`task-item ${task.completed ? 'completed' : ''}`}>
+                    <span onClick={() => toggleTask(task.id)}>{task.text}</span>
+                    <button onClick={() => deleteTask(task.id)} className="delete-btn">&times;</button>
+                  </div>
+                ))}
+              </div>
+
+              <button className="btn logout-btn" onClick={handleLogout}>
                 Logout
               </button>
             </div>

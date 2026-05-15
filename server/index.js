@@ -13,6 +13,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'supersecretkey123';
 
 // In-memory user database
 const users = [];
+const tasks = [];
 
 // Pre-populate with a demo user
 const initDemoUser = async () => {
@@ -24,11 +25,49 @@ const initDemoUser = async () => {
         email: 'demo@example.com',
         password: hashedPassword
     });
+    
+    tasks.push({ id: 1, userId: 1, text: 'Welcome to your tasks!', completed: false });
 };
 initDemoUser();
 
 app.get('/', (req, res) => {
     res.json({ message: 'Welcome to the Login API' });
+});
+
+// Task Endpoints
+app.get('/api/tasks', authMiddleware, (req, res) => {
+    const userTasks = tasks.filter(t => t.userId === req.user.id);
+    res.json(userTasks);
+});
+
+app.post('/api/tasks', authMiddleware, (req, res) => {
+    const { text } = req.body;
+    if (!text) return res.status(400).json({ error: 'Text required' });
+    
+    const newTask = {
+        id: Date.now(),
+        userId: req.user.id,
+        text,
+        completed: false
+    };
+    tasks.push(newTask);
+    res.status(201).json(newTask);
+});
+
+app.patch('/api/tasks/:id', authMiddleware, (req, res) => {
+    const task = tasks.find(t => t.id === parseInt(req.params.id) && t.userId === req.user.id);
+    if (!task) return res.status(404).json({ error: 'Task not found' });
+    
+    task.completed = !task.completed;
+    res.json(task);
+});
+
+app.delete('/api/tasks/:id', authMiddleware, (req, res) => {
+    const index = tasks.findIndex(t => t.id === parseInt(req.params.id) && t.userId === req.user.id);
+    if (index === -1) return res.status(404).json({ error: 'Task not found' });
+    
+    tasks.splice(index, 1);
+    res.json({ success: true });
 });
 
 // Register Endpoint
