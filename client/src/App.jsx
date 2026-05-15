@@ -55,34 +55,38 @@ function App() {
   const addTask = async (e) => {
     e.preventDefault()
     if (!newTask.trim()) return
+    
+    const tempTask = { id: Date.now(), text: newTask, completed: false, loading: true }
+    setTasks([...tasks, tempTask])
+    setNewTask('')
+
     const token = localStorage.getItem('token')
     const res = await fetch(`${API_URL.replace('/api/auth', '/api/tasks')}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ text: newTask })
+      body: JSON.stringify({ text: tempTask.text })
     })
-    if (res.ok) {
-      setNewTask('')
-      fetchTasks()
-    }
+    if (res.ok) fetchTasks()
   }
 
   const toggleTask = async (id) => {
+    setTasks(tasks.map(t => t.id === id ? { ...t, completed: !t.completed } : t))
+    
     const token = localStorage.getItem('token')
     await fetch(`${API_URL.replace('/api/auth', '/api/tasks')}/${id}`, {
       method: 'PATCH',
       headers: { Authorization: `Bearer ${token}` }
     })
-    fetchTasks()
   }
 
   const deleteTask = async (id) => {
+    setTasks(tasks.filter(t => t.id !== id))
+    
     const token = localStorage.getItem('token')
     await fetch(`${API_URL.replace('/api/auth', '/api/tasks')}/${id}`, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${token}` }
     })
-    fetchTasks()
   }
 
   const handleChange = (e) => {

@@ -11,6 +11,21 @@ app.use(express.json());
 const PORT = process.env.PORT || 5005;
 const JWT_SECRET = process.env.JWT_SECRET || 'supersecretkey123';
 
+const authMiddleware = (req, res, next) => {
+    const token = req.header('Authorization')?.replace('Bearer ', '');
+    if (!token) {
+        return res.status(401).json({ error: 'No token, authorization denied' });
+    }
+
+    try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        req.user = decoded;
+        next();
+    } catch (err) {
+        res.status(401).json({ error: 'Token is not valid' });
+    }
+};
+
 // In-memory user database
 const users = [];
 const tasks = [];
@@ -139,21 +154,7 @@ app.post('/api/auth/login', async (req, res) => {
     }
 });
 
-// Get Current User Endpoint (Protected)
-const authMiddleware = (req, res, next) => {
-    const token = req.header('Authorization')?.replace('Bearer ', '');
-    if (!token) {
-        return res.status(401).json({ error: 'No token, authorization denied' });
-    }
 
-    try {
-        const decoded = jwt.verify(token, JWT_SECRET);
-        req.user = decoded;
-        next();
-    } catch (err) {
-        res.status(401).json({ error: 'Token is not valid' });
-    }
-};
 
 app.get('/api/auth/me', authMiddleware, (req, res) => {
     const user = users.find(u => u.id === req.user.id);
